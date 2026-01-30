@@ -1,4 +1,5 @@
 #![cfg_attr(not(test), no_std)]
+
 extern crate alloc;
 
 use core::future::ready;
@@ -42,13 +43,13 @@ pub struct CrossTaskConfig {
     reply_timeout: Duration,
 }
 
-#[derive(new)]
+#[derive(new, Clone)]
 pub struct Message<Request, Response> {
     request: Request,
     reply: Arc<Signal<Response>>,
 }
 
-#[derive(new, Clone)]
+#[derive(new)]
 pub struct Requestor<Request: 'static, Response: 'static> {
     sender: Arc<Sender<'static, Request, Response>>,
     send_timeout: Duration,
@@ -95,7 +96,17 @@ impl<Request: Send, Response: Send> Requestor<Request, Response> {
     }
 }
 
-impl<Request: 'static, Response: 'static> Responder<Request, Response> {
+impl<Request, Respnse> Clone for Requestor<Request, Respnse> {
+    fn clone(&self) -> Self {
+        Self {
+            sender: self.sender.clone(),
+            send_timeout: self.send_timeout.clone(),
+            reply_timeout: self.reply_timeout.clone(),
+        }
+    }
+}
+
+impl<Request, Response> Responder<Request, Response> {
     async fn receive_next(&self) -> Result<Message<Request, Response>, Error> {
         let recv_timed_out = |_| {
             Error::TimedOut(
@@ -118,7 +129,7 @@ impl<Request: 'static, Response: 'static> Responder<Request, Response> {
     pub async fn stream<Via>(&self, via: Via)
     where
         Via: AsyncFn(Request) -> Response,
-        Via: Copy,
+        Via: Clone,
     {
         stream::unfold((), |_| async move {
             let next = self.receive_next().await;
@@ -129,9 +140,14 @@ impl<Request: 'static, Response: 'static> Responder<Request, Response> {
             defmt::warn!("receive error (ignoring): {:?}", e);
         })
         .filter_map(|x| ready(x.ok()))
-        .for_each(move |message| async move {
-            let response = via(message.request).await;
-            message.reply.signal(response);
+        .for_each(|message| {
+            let via = via.clone();
+            let request = message.request;
+            let reply = move |response| message.reply.signal(response);
+            async move {
+                let response = via(request).await;
+                reply(response);
+            }
         })
         .await;
     }
@@ -159,8 +175,8 @@ impl<Request: 'static, Response: 'static> CrossTask<Request, Response> {
 mod tests {
     use core::future::ready;
 
-    use static_cell::StaticCell;
     use crate::*;
+    use static_cell::StaticCell;
 
     async fn _usage() {
         #[derive(Debug, PartialEq)]
