@@ -100,8 +100,8 @@ impl<Request, Respnse> Clone for Requestor<Request, Respnse> {
     fn clone(&self) -> Self {
         Self {
             sender: self.sender.clone(),
-            send_timeout: self.send_timeout.clone(),
-            reply_timeout: self.reply_timeout.clone(),
+            send_timeout: self.send_timeout,
+            reply_timeout: self.reply_timeout,
         }
     }
 }
@@ -111,7 +111,7 @@ impl<Request, Response> Responder<Request, Response> {
         let recv_timed_out = |_| {
             Error::TimedOut(
                 "message receive",
-                self.recv_timeout.unwrap_or(Duration::default()),
+                self.recv_timeout.unwrap_or_default(),
             )
         };
 
