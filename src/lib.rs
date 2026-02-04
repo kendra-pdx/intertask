@@ -66,8 +66,8 @@ impl Default for CrossTaskConfig {
     fn default() -> Self {
         Self {
             recv_timeout: None,
-            send_timeout: Duration::from_millis(200),
-            reply_timeout: Duration::from_millis(400),
+            send_timeout: Duration::from_millis(1000),
+            reply_timeout: Duration::from_millis(2000),
         }
     }
 }
@@ -108,12 +108,8 @@ impl<Request, Respnse> Clone for Requestor<Request, Respnse> {
 
 impl<Request, Response> Responder<Request, Response> {
     async fn receive_next(&self) -> Result<Message<Request, Response>, Error> {
-        let recv_timed_out = |_| {
-            Error::TimedOut(
-                "message receive",
-                self.recv_timeout.unwrap_or_default(),
-            )
-        };
+        let recv_timed_out =
+            |_| Error::TimedOut("message receive", self.recv_timeout.unwrap_or_default());
 
         if let Some(recv_timeout) = self.recv_timeout {
             self.receiver
