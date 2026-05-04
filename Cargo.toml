@@ -2,10 +2,11 @@
 name = "intertask"
 version = "0.1.0"
 edition = "2024"
+publish = ["kellnr"]
 
 [dependencies]
 embassy-futures = "0.1"
-embassy-sync = "0.7"
+embassy-sync = "0.8"
 embassy-time = { version = "0.5.0" }
 futures = { version = "0.3", default-features = false, features = ["alloc"] }
 
