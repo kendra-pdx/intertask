@@ -1,5 +1,7 @@
 #![cfg_attr(not(test), no_std)]
 
+pub mod channel;
+
 extern crate alloc;
 
 use core::future::ready;
@@ -8,7 +10,6 @@ use alloc::sync::Arc;
 use derive_new::new;
 use embassy_sync::{
     blocking_mutex::raw::CriticalSectionRawMutex,
-    channel::{self},
     signal::{self},
 };
 use embassy_time::{Duration, WithTimeout};
@@ -16,11 +17,11 @@ use futures::{StreamExt, TryStreamExt, stream};
 use thiserror::Error;
 
 pub type Channel<Request, Response> =
-    channel::Channel<CriticalSectionRawMutex, Message<Request, Response>, 1>;
+    embassy_sync::channel::Channel<CriticalSectionRawMutex, Message<Request, Response>, 1>;
 pub type Receiver<'r, Request, Response> =
-    channel::Receiver<'r, CriticalSectionRawMutex, Message<Request, Response>, 1>;
+    embassy_sync::channel::Receiver<'r, CriticalSectionRawMutex, Message<Request, Response>, 1>;
 pub type Sender<'r, Request, Response> =
-    channel::Sender<'r, CriticalSectionRawMutex, Message<Request, Response>, 1>;
+    embassy_sync::channel::Sender<'r, CriticalSectionRawMutex, Message<Request, Response>, 1>;
 
 type Signal<R> = signal::Signal<CriticalSectionRawMutex, R>;
 
